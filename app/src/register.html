@@ -61,7 +61,7 @@
       <div class="container" data-aos="fade-up">
         <div class="section-title">
           <h2>Register</h2>
-          <p>Please enter your details to register.</p>
+          <p>Please enter your details to register as a Student or Teacher.</p>
         </div>
 
         <div class="row justify-content-center">
@@ -69,7 +69,7 @@
 
             <!-- Alert Messages -->
             <div class="alert alert-warning" id="warning-alert" style="display: none;">
-              <strong>Warning!</strong> Invalid public key. Please enter a valid public key to register.
+              <strong>Warning!</strong> Could not connect wallet. Please unlock MetaMask and retry.
             </div>
 
             <div class="alert alert-info" id="info-alert" style="display: none;">
@@ -90,8 +90,8 @@
                 <label for="designation">Registering as:</label>
                 <select name="Designation" id="designation" class="form-select" required>
                   <option value="" disabled selected>-- Please Select --</option>
-                  <option value="0">Patient</option>
-                  <option value="1">Doctor</option>
+                  <option value="0">Student</option>
+                  <option value="1">Teacher</option>
                 </select>
               </div>
               <div class="text-center mt-4">
@@ -169,7 +169,9 @@
             console.error(error);
             return;
           }
-          if (PatientList.includes(publicKey) || DoctorList.includes(publicKey)) {
+          const normalizedPatientList = (PatientList || []).map((address) => String(address).toLowerCase());
+          const normalizedDoctorList = (DoctorList || []).map((address) => String(address).toLowerCase());
+          if (normalizedPatientList.includes(publicKey) || normalizedDoctorList.includes(publicKey)) {
             validAgent = false;
             $("#info-alert").show();
             return;
@@ -189,15 +191,42 @@
             const ipfsHash = result[0].hash;
             console.log("IPFS Hash:", ipfsHash);
 
-            contractInstance.add_agent(name, age, designation, ipfsHash, { gas: 1000000 }, (err, res) => {
+            contractInstance.add_agent(name, age, designation, ipfsHash, { gas: 1000000 }, async (err, res) => {
               if (err) {
                 console.error(err);
                 return;
               }
+
+              const waitForRegistration = async () => {
+                for (let attempt = 0; attempt < 20; attempt++) {
+                  const students = await new Promise((resolve, reject) => {
+                    contractInstance.get_patient_list((listErr, listRes) => listErr ? reject(listErr) : resolve(listRes || []));
+                  });
+                  const teachers = await new Promise((resolve, reject) => {
+                    contractInstance.get_doctor_list((listErr, listRes) => listErr ? reject(listErr) : resolve(listRes || []));
+                  });
+                  const normalizedStudents = students.map((address) => String(address).toLowerCase());
+                  const normalizedTeachers = teachers.map((address) => String(address).toLowerCase());
+
+                  if (normalizedStudents.includes(publicKey) || normalizedTeachers.includes(publicKey)) {
+                    return true;
+                  }
+
+                  await new Promise((resolve) => setTimeout(resolve, 1500));
+                }
+                return false;
+              };
+
+              try {
+                await waitForRegistration();
+              } catch (waitError) {
+                console.error(waitError);
+              }
+
               if (designation === 0) {
-                window.location.href = "./patient.html?key=" + publicKey;
+                window.location.href = "./student.html?key=" + publicKey;
               } else if (designation === 1) {
-                window.location.href = "./doctor.html?key=" + publicKey;
+                window.location.href = "./teacher.html?key=" + publicKey;
               }
             });
           });

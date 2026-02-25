@@ -54,13 +54,13 @@
       <img src="assets/img/hero-bg.jpg" alt="" data-aos="fade-in">
       <div class="container position-relative">
         <div class="welcome position-relative" data-aos="fade-down" data-aos-delay="100">
-          <h2>Welcome to ArogyaBlock</h2>
+          <h2>Welcome to StudentRecord Chain</h2>
           <div class="row">
             <div class="alert alert-warning col-sm-8 col-sm-offset-2" style="display: none;">
-                <strong>Warning!</strong> Unregistered user. Click <a href="./register.html">here</a> to register. 
+                <strong>Warning!</strong> Invalid user. Click <a href="./register.html">here</a> to register as a Student or Teacher. 
             </div>
           </div>
-          <p>Login is Linked to your Metamask Account</p>
+          <p>Login is linked to your MetaMask account</p>
           <button class="cta-btn d-none d-sm-block" style="margin-left: 0px; margin-top: 20px;" onclick="login()">Login</button>
         </div>
       </div>
@@ -140,13 +140,15 @@
 
         try {
             var patientList = await getPatientListAsync();
-            if (patientList.indexOf(normalizedKey) !== -1) {
-                location.href = "./patient.html?key=" + publicKey;
+            var normalizedPatientList = patientList.map(function(address) { return String(address).toLowerCase(); });
+            if (normalizedPatientList.indexOf(normalizedKey) !== -1) {
+                location.href = "./student.html?key=" + publicKey;
                 return;
             }
             var doctorList = await getDoctorListAsync();
-            if (doctorList.indexOf(normalizedKey) !== -1) {
-                location.href = "./doctor.html?key=" + publicKey;
+            var normalizedDoctorList = doctorList.map(function(address) { return String(address).toLowerCase(); });
+            if (normalizedDoctorList.indexOf(normalizedKey) !== -1) {
+                location.href = "./teacher.html?key=" + publicKey;
                 return;
             }
         } catch (error) {
